@@ -9,5 +9,6 @@ const toUserDto = (user) => ({
     followers: user.followers,
     following: user.following,
     token: user.token,
+    avatarUrl: user.avatarUrl,
 });
 exports.toUserDto = toUserDto;

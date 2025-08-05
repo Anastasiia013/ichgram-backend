@@ -43,7 +43,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.unlikePostController = exports.likePostController = exports.getExplorePosts = exports.getPostByIdController = exports.getUserPosts = exports.createPost = void 0;
-// import { AuthRequest } from "../middlewares/authorization";
 const mongoose_1 = require("mongoose");
 const postsService = __importStar(require("../services/posts.service"));
 const createPost = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -112,7 +111,6 @@ const likePostController = (req, res) => __awaiter(void 0, void 0, void 0, funct
     try {
         const { postId } = req.params;
         const userId = req.user._id;
-        console.log("LIKE controller:", postId, userId);
         const likesCount = yield postsService.likePost(postId, userId);
         res.json({ likesCount });
     }
@@ -133,7 +131,6 @@ const unlikePostController = (req, res) => __awaiter(void 0, void 0, void 0, fun
     try {
         const { postId } = req.params;
         const userId = req.user._id;
-        console.log("UNLIKE controller called:", postId, userId);
         const likesCount = yield postsService.unlikePost(postId, userId);
         res.status(200).json({ likes: likesCount });
     }

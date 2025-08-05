@@ -49,7 +49,6 @@ const getExplorePostsService = () => __awaiter(void 0, void 0, void 0, function*
 });
 exports.getExplorePostsService = getExplorePostsService;
 const likePost = (postId, userId) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("likePost called with:", postId);
     const post = yield Post_1.default.findById(postId);
     if (!post)
         throw new Error("Пост не найден");
@@ -62,7 +61,6 @@ const likePost = (postId, userId) => __awaiter(void 0, void 0, void 0, function*
 });
 exports.likePost = likePost;
 const unlikePost = (postId, userId) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("Trying to unlike post:", postId);
     const post = yield Post_1.default.findById(postId);
     if (!post) {
         console.error("POST NOT FOUND:", postId);

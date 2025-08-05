@@ -9,4 +9,5 @@ export const toUserDto = (user: IUser): IUserDto => ({
   followers: user.followers,
   following: user.following,
   token: user.token,
+  avatarUrl: user.avatarUrl,
 });

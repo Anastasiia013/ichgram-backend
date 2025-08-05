@@ -94,7 +94,7 @@ exports.resetPasswordByCode = resetPasswordByCode;
 const getUserProfileService = (username) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield User_1.default.findOne({ username })
         .select("-password -verificationCode -token -__v") // скрываем лишнее
-        .populate("followers", "username avatarUrl") // если хочешь получить краткую инфу о подписчиках
+        .populate("followers", "username avatarUrl") // получить краткую инфу о подписчиках
         .populate("following", "username avatarUrl");
     return user;
 });
@@ -129,10 +129,6 @@ const followUser = (targetUserId, currentUserId) => __awaiter(void 0, void 0, vo
     if (!user || !currentUser) {
         throw new Error("Пользователь не найден");
     }
-    console.log("BEFORE:", {
-        userFollowers: user.followers.length,
-        currentUserFollowing: currentUser.following.length,
-    });
     if (!user.followers.some((id) => id.toString() === currentUserId)) {
         user.followers.push(currentUserId);
     }
@@ -140,10 +136,6 @@ const followUser = (targetUserId, currentUserId) => __awaiter(void 0, void 0, vo
         currentUser.following.push(targetUserId);
     }
     yield Promise.all([user.save(), currentUser.save()]);
-    console.log("AFTER:", {
-        userFollowers: user.followers.length,
-        currentUserFollowing: currentUser.following.length,
-    });
     return user;
 });
 exports.followUser = followUser;
@@ -153,19 +145,9 @@ const unfollowUser = (targetUserId, currentUserId) => __awaiter(void 0, void 0, 
     if (!user || !currentUser) {
         throw new Error("Пользователь не найден");
     }
-    console.log("currentUserId:", currentUserId, typeof currentUserId);
-    console.log("followers before:", user.followers.map((id) => id.toString()));
-    console.log("UNFOLLOW BEFORE:", {
-        userFollowers: user.followers.length,
-        currentUserFollowing: currentUser.following.length,
-    });
     user.followers = user.followers.filter((followerId) => followerId.toString() !== currentUserId.toString());
     currentUser.following = currentUser.following.filter((followingId) => followingId.toString() !== targetUserId.toString());
     yield Promise.all([user.save(), currentUser.save()]);
-    console.log("UNFOLLOW AFTER:", {
-        userFollowers: user.followers.length,
-        currentUserFollowing: currentUser.following.length,
-    });
     return user;
 });
 exports.unfollowUser = unfollowUser;

@@ -78,9 +78,6 @@ exports.checkUsernameController = checkUsernameController;
 const verifyController = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     yield (0, validateBody_1.default)(users_schema_1.verifyCodeSchema, req.body);
     yield usersService.verify(req.body.code);
-    console.log(req.body);
-    console.log(req.body.code);
-    console.log(req.body.verificationCode);
     res.status(200).json({
         message: "User successfully verified",
     });
@@ -177,7 +174,6 @@ const followUserController = (req, res) => __awaiter(void 0, void 0, void 0, fun
     try {
         const { id } = req.params;
         const currentUserId = req.user._id;
-        console.log("FOLLOW controller called:", currentUserId, "->", id);
         yield usersService.followUser(id, currentUserId);
         res.status(200).json({ message: "Подписка оформлена" });
     }
