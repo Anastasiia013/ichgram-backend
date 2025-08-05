@@ -1,0 +1,27 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const posts_controller_1 = require("../controllers/posts.controller");
+const authorization_1 = require("../middlewares/authorization");
+const uploadMiddleware_1 = require("../middlewares/uploadMiddleware");
+const postsRouter = express_1.default.Router();
+postsRouter.get("/explore", posts_controller_1.getExplorePosts);
+postsRouter.get("/:username/posts", posts_controller_1.getUserPosts);
+postsRouter.get("/:postId", posts_controller_1.getPostByIdController);
+postsRouter.post("/create-new-post", authorization_1.authenticate, uploadMiddleware_1.upload.single("image"), posts_controller_1.createPost);
+postsRouter.post("/:postId/like", authorization_1.authenticate, posts_controller_1.likePostController);
+postsRouter.post("/:postId/unlike", authorization_1.authenticate, posts_controller_1.unlikePostController);
+// postsRouter.post(
+//   "/:postId/comments/:commentId/like",
+//   authenticate,
+//   likeCommentController
+// );
+// postsRouter.post(
+//   "/:postId/comments/:commentId/unlike",
+//   authenticate,
+//   unlikeCommentController
+// );
+exports.default = postsRouter;
