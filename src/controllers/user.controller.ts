@@ -3,7 +3,6 @@ import * as usersService from "../services/user.service";
 
 import validateBody from "../utils/validateBody";
 import {
-  ChangePasswordSchema,
   userAddSchema,
   verifyCodeSchema,
   resetPasswordSchema,
@@ -140,7 +139,7 @@ export const resetPasswordController = async (
   next: NextFunction
 ) => {
   try {
-    await validateBody(resetPasswordSchema, req.body); // 👈 добавить валидацию
+    await validateBody(resetPasswordSchema, req.body);
 
     const { verificationCode, newPassword } = req.body;
     await usersService.resetPasswordByCode(verificationCode, newPassword);

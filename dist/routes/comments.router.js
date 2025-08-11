@@ -1,0 +1,11 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const comments_controller_1 = require("../controllers/comments.controller");
+const authorization_1 = require("../middlewares/authorization");
+const commentsRouter = (0, express_1.Router)();
+commentsRouter.get("/:postId", comments_controller_1.getCommentsByPostController);
+commentsRouter.delete("/:postId/:commentId", authorization_1.authenticate, comments_controller_1.deleteCommentController);
+commentsRouter.post("/posts/:postId/comments/:commentId/like", authorization_1.authenticate, comments_controller_1.likeCommentController);
+commentsRouter.post("/posts/:postId/comments/:commentId/unlike", authorization_1.authenticate, comments_controller_1.unlikeCommentController);
+exports.default = commentsRouter;

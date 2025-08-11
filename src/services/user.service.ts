@@ -1,9 +1,9 @@
 import bcrypt from "bcrypt";
+import { nanoid } from "nanoid";
 import User from "../db/User";
 
 import sendEmailWitMailgun from "../utils/sendEmailWithMailgun";
 import HttpExeption from "../utils/HttpExeption";
-import { nanoid } from "nanoid";
 import { generateVerificationCode } from "../utils/generateVerificationCode";
 
 const { FRONTEND_URL } = process.env;
@@ -67,12 +67,6 @@ export const verify = async (code: string) => {
   await user.save();
 };
 
-interface ChangePasswordDto {
-  data: string;
-  oldPassword: string;
-  newPassword: string;
-}
-
 export const sendPasswordResetLink = async (
   identifier: string
 ): Promise<void> => {
@@ -119,7 +113,7 @@ export const resetPasswordByCode = async (
 export const getUserProfileService = async (username: string) => {
   const user = await User.findOne({ username })
     .select("-password -verificationCode -token -__v") // скрываем лишнее
-    .populate("followers", "username avatarUrl") // получить краткую инфу о подписчиках
+    .populate("followers", "username avatarUrl") // инф о подписчиках
     .populate("following", "username avatarUrl");
   return user;
 };

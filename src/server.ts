@@ -8,6 +8,7 @@ import errorHandler from "./middlewares/errorHandler";
 import userRouter from "./routes/user.router";
 import authRouter from "./routes/auth.router";
 import postsRouter from "./routes/posts.router";
+import commentsRouter from "./routes/comments.router";
 
 const startServer = () => {
   const app = express();
@@ -22,6 +23,7 @@ const startServer = () => {
   app.use("/api/users", userRouter);
   app.use("/api/auth", authRouter);
   app.use("/api/posts", postsRouter);
+  app.use("/api/comments", commentsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

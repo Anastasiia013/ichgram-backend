@@ -12,9 +12,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.unlikePost = exports.likePost = exports.getExplorePostsService = exports.getPostByIdService = exports.getUserPostsService = exports.createPostService = void 0;
+exports.createComment = exports.editPost = exports.deletePost = exports.unlikeComment = exports.likeComment = exports.unlikePost = exports.likePost = exports.getExplorePostsService = exports.getPostByIdService = exports.getUserPostsService = exports.createPostService = void 0;
+exports.getFeedPostsService = getFeedPostsService;
 const Post_1 = __importDefault(require("../db/Post"));
 const User_1 = __importDefault(require("../db/User"));
+const Comment_1 = __importDefault(require("../db/Comment"));
 const mongoose_1 = require("mongoose");
 const createPostService = (_a) => __awaiter(void 0, [_a], void 0, function* ({ authorId, imageUrl, caption = "", }) {
     const newPost = yield Post_1.default.create({
@@ -36,14 +38,26 @@ const getUserPostsService = (username) => __awaiter(void 0, void 0, void 0, func
 });
 exports.getUserPostsService = getUserPostsService;
 const getPostByIdService = (postId) => __awaiter(void 0, void 0, void 0, function* () {
-    const post = yield Post_1.default.findById(postId);
-    return post;
+    const post = yield Post_1.default.findById(postId)
+        .populate("author", "username avatarUrl")
+        .populate({
+        path: "comments",
+        populate: [
+            { path: "author", select: "username avatarUrl" },
+            { path: "likes", select: "username avatarUrl" },
+        ],
+        options: { sort: { createdAt: 1 } },
+    })
+        .populate("likes", "username avatarUrl")
+        .lean();
+    if (!post)
+        return null;
+    return Object.assign(Object.assign({}, post), { author: post.author || { username: "", avatarUrl: "" } });
 });
 exports.getPostByIdService = getPostByIdService;
 const getExplorePostsService = () => __awaiter(void 0, void 0, void 0, function* () {
     const posts = yield Post_1.default.aggregate([
-        // { $match: { isPublic: true } }, // если нужно фильтровать по видимости
-        { $sample: { size: 100 } }, // 20 случайных постов
+        { $sample: { size: 100 } }, //можно бы добавить пагинацию в будущем
     ]);
     return posts;
 });
@@ -72,26 +86,74 @@ const unlikePost = (postId, userId) => __awaiter(void 0, void 0, void 0, functio
     return post.likes.length;
 });
 exports.unlikePost = unlikePost;
-// export const likeComment = async (
-//   commentId: string,
-//   userId: string
-// ): Promise<number> => {
-//   const comment = await Comment.findById(commentId);
-//   if (!comment) throw new Error("Комментарий не найден");
-//   const userIdStr = userId.toString();
-//   if (!comment.likes.some(id => id.toString() === userIdStr)) {
-//     comment.likes.push(new Types.ObjectId(userId));
-//     await comment.save();
-//   }
-//   return comment.likes.length;
-// };
-// export const unlikeComment = async (
-//   commentId: string,
-//   userId: string
-// ): Promise<number> => {
-//   const comment = await Comment.findById(commentId);
-//   if (!comment) throw new Error("Комментарий не найден");
-//   comment.likes = comment.likes.filter(id => id.toString() !== userId.toString());
-//   await comment.save();
-//   return comment.likes.length;
-// };
+const likeComment = (commentId, userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const comment = yield Comment_1.default.findById(commentId);
+    if (!comment)
+        throw new Error("Комментарий не найден");
+    const userIdStr = userId.toString();
+    if (!comment.likes.some((id) => id.toString() === userIdStr)) {
+        comment.likes.push(new mongoose_1.Types.ObjectId(userId));
+        yield comment.save();
+    }
+    return comment.likes.length;
+});
+exports.likeComment = likeComment;
+const unlikeComment = (commentId, userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const comment = yield Comment_1.default.findById(commentId);
+    if (!comment)
+        throw new Error("Комментарий не найден");
+    comment.likes = comment.likes.filter((id) => id.toString() !== userId.toString());
+    yield comment.save();
+    return comment.likes.length;
+});
+exports.unlikeComment = unlikeComment;
+const deletePost = (postId, userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const post = yield Post_1.default.findById(postId);
+    if (!post)
+        return false;
+    if (post.author.toString() !== userId.toString()) {
+        return false;
+    }
+    yield Post_1.default.deleteOne({ _id: postId });
+    return true;
+});
+exports.deletePost = deletePost;
+const editPost = (postId, newCaption, userId) => __awaiter(void 0, void 0, void 0, function* () {
+    const post = yield Post_1.default.findById(postId);
+    if (!post)
+        return null;
+    if (post.author.toString() !== userId.toString()) {
+        return null; //смотрим кто автор поста
+    }
+    post.caption = newCaption;
+    yield post.save();
+    return post;
+});
+exports.editPost = editPost;
+function getFeedPostsService(userId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const user = yield User_1.default.findById(userId).select("following");
+        if (!user)
+            throw new Error("User not found");
+        const posts = yield Post_1.default.find({
+            author: { $in: user.following },
+        })
+            .sort({ createdAt: -1 })
+            .populate("author", "username avatarUrl")
+            .exec();
+        return posts;
+    });
+}
+const createComment = (postId, authorId, text) => __awaiter(void 0, void 0, void 0, function* () {
+    const authorObjId = new mongoose_1.Types.ObjectId(authorId);
+    const comment = new Comment_1.default({
+        author: authorObjId,
+        text,
+        likes: [],
+    });
+    yield comment.save();
+    yield Post_1.default.findByIdAndUpdate(postId, { $push: { comments: comment._id } });
+    const populatedComment = yield Comment_1.default.findById(comment._id).populate("author", "username avatarUrl");
+    return populatedComment;
+});
+exports.createComment = createComment;

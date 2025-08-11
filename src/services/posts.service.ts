@@ -1,5 +1,6 @@
 import Post, { IPost } from "../db/Post";
 import User from "../db/User";
+import Comment, { IComment } from "../db/Comment";
 import { Types } from "mongoose";
 
 interface CreatePostInput {
@@ -34,16 +35,31 @@ export const getUserPostsService = async (username: string) => {
 };
 
 export const getPostByIdService = async (postId: string) => {
-  const post = await Post.findById(postId);
-  return post;
+  const post = await Post.findById(postId)
+    .populate("author", "username avatarUrl")
+    .populate({
+      path: "comments",
+      populate: [
+        { path: "author", select: "username avatarUrl" },
+        { path: "likes", select: "username avatarUrl" },
+      ],
+      options: { sort: { createdAt: 1 } },
+    })
+    .populate("likes", "username avatarUrl")
+    .lean();
+
+  if (!post) return null;
+
+  return {
+    ...post,
+    author: post.author || { username: "", avatarUrl: "" },
+  };
 };
 
 export const getExplorePostsService = async () => {
   const posts = await Post.aggregate([
-    // { $match: { isPublic: true } }, // если нужно фильтровать по видимости
-    { $sample: { size: 100 } }, // 20 случайных постов
+    { $sample: { size: 100 } }, //можно бы добавить пагинацию в будущем
   ]);
-
   return posts;
 };
 
@@ -76,32 +92,105 @@ export const unlikePost = async (postId: string, userId: string) => {
   return post.likes.length;
 };
 
+export const likeComment = async (
+  commentId: string,
+  userId: string
+): Promise<number> => {
+  const comment = await Comment.findById(commentId);
+  if (!comment) throw new Error("Комментарий не найден");
 
-// export const likeComment = async (
-//   commentId: string,
-//   userId: string
-// ): Promise<number> => {
-//   const comment = await Comment.findById(commentId);
-//   if (!comment) throw new Error("Комментарий не найден");
+  const userIdStr = userId.toString();
+  if (!comment.likes.some((id) => id.toString() === userIdStr)) {
+    comment.likes.push(new Types.ObjectId(userId));
+    await comment.save();
+  }
 
-//   const userIdStr = userId.toString();
-//   if (!comment.likes.some(id => id.toString() === userIdStr)) {
-//     comment.likes.push(new Types.ObjectId(userId));
-//     await comment.save();
-//   }
+  return comment.likes.length;
+};
 
-//   return comment.likes.length;
-// };
+export const unlikeComment = async (
+  commentId: string,
+  userId: string
+): Promise<number> => {
+  const comment = await Comment.findById(commentId);
+  if (!comment) throw new Error("Комментарий не найден");
 
-// export const unlikeComment = async (
-//   commentId: string,
-//   userId: string
-// ): Promise<number> => {
-//   const comment = await Comment.findById(commentId);
-//   if (!comment) throw new Error("Комментарий не найден");
+  comment.likes = comment.likes.filter(
+    (id) => id.toString() !== userId.toString()
+  );
+  await comment.save();
 
-//   comment.likes = comment.likes.filter(id => id.toString() !== userId.toString());
-//   await comment.save();
+  return comment.likes.length;
+};
 
-//   return comment.likes.length;
-// };
+export const deletePost = async (
+  postId: string,
+  userId: string
+): Promise<boolean> => {
+  const post = await Post.findById(postId);
+  if (!post) return false;
+
+  if (post.author.toString() !== userId.toString()) {
+    return false;
+  }
+
+  await Post.deleteOne({ _id: postId });
+  return true;
+};
+
+export const editPost = async (
+  postId: string,
+  newCaption: string,
+  userId: string
+) => {
+  const post = await Post.findById(postId);
+  if (!post) return null;
+
+  if (post.author.toString() !== userId.toString()) {
+    return null; //смотрим кто автор поста
+  }
+
+  post.caption = newCaption;
+  await post.save();
+
+  return post;
+};
+
+export async function getFeedPostsService(userId: string) {
+  const user = await User.findById(userId).select("following");
+  if (!user) throw new Error("User not found");
+
+  const posts = await Post.find({
+    author: { $in: user.following },
+  })
+    .sort({ createdAt: -1 })
+    .populate("author", "username avatarUrl")
+    .exec();
+
+  return posts;
+}
+
+export const createComment = async (
+  postId: string,
+  authorId: string,
+  text: string
+): Promise<IComment> => {
+  const authorObjId = new Types.ObjectId(authorId);
+
+  const comment = new Comment({
+    author: authorObjId,
+    text,
+    likes: [],
+  });
+
+  await comment.save();
+
+  await Post.findByIdAndUpdate(postId, { $push: { comments: comment._id } });
+
+  const populatedComment = await Comment.findById(comment._id).populate(
+    "author",
+    "username avatarUrl"
+  );
+
+  return populatedComment!;
+};

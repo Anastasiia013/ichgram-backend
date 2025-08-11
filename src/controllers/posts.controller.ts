@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Types } from "mongoose";
 import * as postsService from "../services/posts.service";
+import { IUser } from "../db/User";
 
 export const createPost = async (req: Request, res: Response) => {
   try {
@@ -46,13 +47,11 @@ export const getPostByIdController = async (req: Request, res: Response) => {
     const postId = req.params.postId;
     const post = await postsService.getPostByIdService(postId);
 
-    if (!post) {
-      return res.status(404).json({ message: "Пост не найден" });
-    }
+    if (!post) return res.status(404).json({ message: "Пост не найден" });
 
     res.json(post);
   } catch (error) {
-    console.error("Ошибка при получении поста:", error);
+    console.error("Ошибка получения поста с комментариями:", error);
     res.status(500).json({ message: "Ошибка сервера" });
   }
 };
@@ -98,27 +97,96 @@ export const unlikePostController = async (req: Request, res: Response) => {
   }
 };
 
+export const likeCommentController = async (req: Request, res: Response) => {
+  try {
+    const likesCount = await postsService.likeComment(
+      req.params.commentId,
+      req.user._id
+    );
+    res.status(200).json({ message: "Поставлен лайк", likesCount });
+  } catch (error) {
+    res.status(500).json({ message: "Ошибка сервера" });
+  }
+};
 
-// export const likeCommentController = async (req, res) => {
-//   try {
-//     const likesCount = await postsService.likeComment(
-//       req.params.commentId,
-//       req.user._id
-//     );
-//     res.status(200).json({ message: "Поставлен лайк", likesCount });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message || "Ошибка сервера" });
-//   }
-// };
+export const unlikeCommentController = async (req: Request, res: Response) => {
+  try {
+    const likesCount = await postsService.unlikeComment(
+      req.params.commentId,
+      req.user._id
+    );
+    res.status(200).json({ message: "Лайк удалён", likesCount });
+  } catch (error) {
+    res.status(500).json({ message: "Ошибка сервера" });
+  }
+};
 
-// export const unlikeCommentController = async (req, res) => {
-//   try {
-//     const likesCount = await postsService.unlikeComment(
-//       req.params.commentId,
-//       req.user._id
-//     );
-//     res.status(200).json({ message: "Лайк удалён", likesCount });
-//   } catch (error) {
-//     res.status(500).json({ message: error.message || "Ошибка сервера" });
-//   }
-// };
+export const deletePostController = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+    const userId = req.user._id;
+
+    const success = await postsService.deletePost(postId, userId);
+    if (!success) {
+      return res.status(403).json({ message: "Нет прав на удаление поста" });
+    }
+
+    res.status(200).json({ message: "Пост удалён" });
+  } catch (error) {
+    console.error("Ошибка при удалении поста:", error);
+    res.status(500).json({ message: "Ошибка сервера" });
+  }
+};
+
+export const editPostController = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+    const { caption } = req.body;
+    const userId = req.user._id;
+
+    const updatedPost = await postsService.editPost(postId, caption, userId);
+    if (!updatedPost) {
+      return res.status(403).json({ message: "Нет доступа к редактированию" });
+    }
+
+    res.json(updatedPost);
+  } catch (error) {
+    console.error("Ошибка при редактировании поста:", error);
+    res.status(500).json({ message: "Ошибка при редактировании поста" });
+  }
+};
+
+export async function getFeedPostsController(req: Request, res: Response) {
+  try {
+    const userId = (req.user as IUser)._id;
+
+    const feedPosts = await postsService.getFeedPostsService(userId);
+    res.status(200).json(feedPosts);
+  } catch (error) {
+    console.error("Ошибка в getFeedPostsController:", error);
+    if (error instanceof Error) {
+      res.status(500).json({ message: error.message });
+    } else {
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+}
+
+
+export const createCommentController = async (req: Request, res: Response) => {
+  try {
+    const { postId } = req.params;
+    const authorId = String(req.user!._id);
+    const { text } = req.body;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({ message: "Text is required" });
+    }
+
+    const comment = await postsService.createComment(postId, authorId, text);
+    res.status(201).json(comment);
+  } catch (error: any) {
+    console.error("Create comment error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};

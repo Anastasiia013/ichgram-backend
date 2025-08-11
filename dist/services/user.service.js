@@ -14,10 +14,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.unfollowUser = exports.followUser = exports.searchUsers = exports.updateUserProfile = exports.getUserByIdService = exports.getUserProfileService = exports.resetPasswordByCode = exports.sendPasswordResetLink = exports.verify = exports.checkUsernameExists = exports.checkEmailExists = exports.registerUser = void 0;
 const bcrypt_1 = __importDefault(require("bcrypt"));
+const nanoid_1 = require("nanoid");
 const User_1 = __importDefault(require("../db/User"));
 const sendEmailWithMailgun_1 = __importDefault(require("../utils/sendEmailWithMailgun"));
 const HttpExeption_1 = __importDefault(require("../utils/HttpExeption"));
-const nanoid_1 = require("nanoid");
 const generateVerificationCode_1 = require("../utils/generateVerificationCode");
 const { FRONTEND_URL } = process.env;
 const registerUser = (data) => __awaiter(void 0, void 0, void 0, function* () {
@@ -94,7 +94,7 @@ exports.resetPasswordByCode = resetPasswordByCode;
 const getUserProfileService = (username) => __awaiter(void 0, void 0, void 0, function* () {
     const user = yield User_1.default.findOne({ username })
         .select("-password -verificationCode -token -__v") // скрываем лишнее
-        .populate("followers", "username avatarUrl") // получить краткую инфу о подписчиках
+        .populate("followers", "username avatarUrl") // инф о подписчиках
         .populate("following", "username avatarUrl");
     return user;
 });

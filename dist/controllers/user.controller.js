@@ -145,7 +145,7 @@ const changePasswordController = (req, res, next) => __awaiter(void 0, void 0, v
 exports.changePasswordController = changePasswordController;
 const resetPasswordController = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        yield (0, validateBody_1.default)(users_schema_1.resetPasswordSchema, req.body); // 👈 добавить валидацию
+        yield (0, validateBody_1.default)(users_schema_1.resetPasswordSchema, req.body);
         const { verificationCode, newPassword } = req.body;
         yield usersService.resetPasswordByCode(verificationCode, newPassword);
         res.status(200).json({ message: "Password successfully reset" });

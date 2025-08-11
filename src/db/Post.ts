@@ -5,13 +5,7 @@ export interface IPost extends Document {
   imageUrl: string;
   caption?: string;
   likes: Types.ObjectId[];
-  comments: [
-    {
-      type: Schema.Types.ObjectId;
-      ref: "Comment";
-    }
-  ];
-
+  comments: Types.ObjectId[];
   createdAt: Date;
 }
 
