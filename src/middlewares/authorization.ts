@@ -41,7 +41,6 @@ export const authenticate = async (
     if (!user || !user.token || user.token !== token) {
       return next(HttpException(401, "User not found or token mismatch"));
     }
-
     req.user = user;
     next();
   } catch (error: any) {

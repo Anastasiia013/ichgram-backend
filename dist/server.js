@@ -12,6 +12,7 @@ const user_router_1 = __importDefault(require("./routes/user.router"));
 const auth_router_1 = __importDefault(require("./routes/auth.router"));
 const posts_router_1 = __importDefault(require("./routes/posts.router"));
 const comments_router_1 = __importDefault(require("./routes/comments.router"));
+const notification_router_1 = __importDefault(require("./routes/notification.router"));
 const startServer = () => {
     const app = (0, express_1.default)();
     app.use((0, cors_1.default)());
@@ -21,6 +22,7 @@ const startServer = () => {
     app.use("/api/auth", auth_router_1.default);
     app.use("/api/posts", posts_router_1.default);
     app.use("/api/comments", comments_router_1.default);
+    app.use("/api/notifications", notification_router_1.default);
     app.use(notFoundHandler_1.default);
     app.use(errorHandler_1.default);
     const port = process.env.PORT || 3000;

@@ -1,10 +1,12 @@
 import bcrypt from "bcrypt";
 import { nanoid } from "nanoid";
 import User from "../db/User";
+import { Types } from "mongoose";
 
 import sendEmailWitMailgun from "../utils/sendEmailWithMailgun";
 import HttpExeption from "../utils/HttpExeption";
 import { generateVerificationCode } from "../utils/generateVerificationCode";
+import { createNotification } from "./notification.service";
 
 const { FRONTEND_URL } = process.env;
 
@@ -172,6 +174,15 @@ export const followUser = async (
   }
 
   await Promise.all([user.save(), currentUser.save()]);
+
+  const toObjectId = (id: string | Types.ObjectId): Types.ObjectId =>
+    typeof id === "string" ? new Types.ObjectId(id) : id;
+
+  await createNotification({
+    recipient: toObjectId(targetUserId),
+    sender: toObjectId(currentUserId),
+    type: "follow",
+  });
 
   return user;
 };

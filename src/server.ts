@@ -9,6 +9,7 @@ import userRouter from "./routes/user.router";
 import authRouter from "./routes/auth.router";
 import postsRouter from "./routes/posts.router";
 import commentsRouter from "./routes/comments.router";
+import notificationRouter from "./routes/notification.router";
 
 const startServer = () => {
   const app = express();
@@ -24,6 +25,7 @@ const startServer = () => {
   app.use("/api/auth", authRouter);
   app.use("/api/posts", postsRouter);
   app.use("/api/comments", commentsRouter);
+  app.use("/api/notifications", notificationRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

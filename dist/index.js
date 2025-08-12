@@ -15,10 +15,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 require("dotenv/config");
 const server_1 = __importDefault(require("./server"));
 const connectDatabase_1 = __importDefault(require("./db/connectDatabase"));
+const websocketServer_1 = __importDefault(require("./websocketServer"));
 const bootstrap = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         yield (0, connectDatabase_1.default)();
         (0, server_1.default)();
+        (0, websocketServer_1.default)();
     }
     catch (error) {
         console.error("Fatal error during startup:");

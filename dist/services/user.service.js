@@ -16,9 +16,11 @@ exports.unfollowUser = exports.followUser = exports.searchUsers = exports.update
 const bcrypt_1 = __importDefault(require("bcrypt"));
 const nanoid_1 = require("nanoid");
 const User_1 = __importDefault(require("../db/User"));
+const mongoose_1 = require("mongoose");
 const sendEmailWithMailgun_1 = __importDefault(require("../utils/sendEmailWithMailgun"));
 const HttpExeption_1 = __importDefault(require("../utils/HttpExeption"));
 const generateVerificationCode_1 = require("../utils/generateVerificationCode");
+const notification_service_1 = require("./notification.service");
 const { FRONTEND_URL } = process.env;
 const registerUser = (data) => __awaiter(void 0, void 0, void 0, function* () {
     const { email, fullname, username, password } = data;
@@ -136,6 +138,12 @@ const followUser = (targetUserId, currentUserId) => __awaiter(void 0, void 0, vo
         currentUser.following.push(targetUserId);
     }
     yield Promise.all([user.save(), currentUser.save()]);
+    const toObjectId = (id) => typeof id === "string" ? new mongoose_1.Types.ObjectId(id) : id;
+    yield (0, notification_service_1.createNotification)({
+        recipient: toObjectId(targetUserId),
+        sender: toObjectId(currentUserId),
+        type: "follow",
+    });
     return user;
 });
 exports.followUser = followUser;

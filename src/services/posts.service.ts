@@ -3,6 +3,8 @@ import User from "../db/User";
 import Comment, { IComment } from "../db/Comment";
 import { Types } from "mongoose";
 
+import { createNotification } from "./notification.service";
+
 interface CreatePostInput {
   authorId: Types.ObjectId;
   imageUrl: string;
@@ -63,19 +65,28 @@ export const getExplorePostsService = async () => {
   return posts;
 };
 
-export const likePost = async (postId: string, userId: string) => {
-  const post = await Post.findById(postId);
-  if (!post) throw new Error("Пост не найден");
+// export const likePost = async (postId: string, userId: string) => {
+//   const post = await Post.findById(postId);
+//   if (!post) throw new Error("Пост не найден");
 
-  const userIdStr = userId.toString();
+//   const userIdStr = userId.toString();
 
-  if (!post.likes.some((id) => id.toString() === userIdStr)) {
-    post.likes.push(new Types.ObjectId(userId));
-    await post.save();
-  }
+//   if (!post.likes.some((id) => id.toString() === userIdStr)) {
+//     post.likes.push(new Types.ObjectId(userId));
+//     await post.save();
+//   }
 
-  return post.likes.length;
-};
+//   if (post.author.toString() !== userIdStr) {
+//     await createNotification({
+//       recipient: post.author,
+//       sender: userId,
+//       type: "like",
+//       post: post._id,
+//     });
+//   }
+
+//   return post.likes.length;
+// };
 
 export const unlikePost = async (postId: string, userId: string) => {
   const post = await Post.findById(postId);
@@ -92,21 +103,30 @@ export const unlikePost = async (postId: string, userId: string) => {
   return post.likes.length;
 };
 
-export const likeComment = async (
-  commentId: string,
-  userId: string
-): Promise<number> => {
-  const comment = await Comment.findById(commentId);
-  if (!comment) throw new Error("Комментарий не найден");
+// export const likeComment = async (
+//   commentId: string,
+//   userId: string
+// ): Promise<number> => {
+//   const comment = await Comment.findById(commentId);
+//   if (!comment) throw new Error("Комментарий не найден");
 
-  const userIdStr = userId.toString();
-  if (!comment.likes.some((id) => id.toString() === userIdStr)) {
-    comment.likes.push(new Types.ObjectId(userId));
-    await comment.save();
-  }
+//   const userIdStr = userId.toString();
+//   if (!comment.likes.some((id) => id.toString() === userIdStr)) {
+//     comment.likes.push(new Types.ObjectId(userId));
+//     await comment.save();
+//   }
 
-  return comment.likes.length;
-};
+//   if (comment.author.toString() !== userIdStr) {
+//     await createNotification({
+//       recipient: comment.author,
+//       sender: userId,
+//       type: "like",
+//       post: undefined, // или можно прокинуть commentId, если хочешь расширить модель
+//     });
+//   }
+
+//   return comment.likes.length;
+// };
 
 export const unlikeComment = async (
   commentId: string,
@@ -170,12 +190,112 @@ export async function getFeedPostsService(userId: string) {
   return posts;
 }
 
+// export const createComment = async (
+//   postId: string,
+//   authorId: string,
+//   text: string
+// ): Promise<IComment> => {
+//   const authorObjId = new Types.ObjectId(authorId);
+
+//   const comment = new Comment({
+//     author: authorObjId,
+//     text,
+//     likes: [],
+//   });
+
+//   await comment.save();
+
+//   await Post.findByIdAndUpdate(postId, { $push: { comments: comment._id } });
+
+//   if (post && post.author.toString() !== authorId) {
+//     await createNotification({
+//       recipient: post.author,
+//       sender: authorId,
+//       type: "comment",
+//       post: post._id,
+//     });
+//   }
+
+//   const populatedComment = await Comment.findById(comment._id).populate(
+//     "author",
+//     "username avatarUrl"
+//   );
+
+//   return populatedComment!;
+// };
+
+const toObjectId = (id: string | Types.ObjectId): Types.ObjectId =>
+  typeof id === "string" ? new Types.ObjectId(id) : id;
+
+export const likePost = async (postId: string, userId: string) => {
+  const post = await Post.findById(postId);
+  if (!post) throw new Error("Пост не найден");
+
+  const userIdObj = toObjectId(userId);
+  const userIdStr = userIdObj.toString();
+
+  if (!post.likes.some((id) => id.toString() === userIdStr)) {
+    post.likes.push(userIdObj);
+    await post.save();
+
+    if (post.author.toString() !== userIdStr) {
+      try {
+        if (post && post._id) {
+          await createNotification({
+            recipient: toObjectId(post.author),
+            sender: userIdObj,
+            type: "like",
+            post: post._id as Types.ObjectId,
+          });
+        }
+      } catch (err) {
+        console.error("Failed to create notification (likePost):", err);
+      }
+    }
+  }
+
+  return post.likes.length;
+};
+
+export const likeComment = async (
+  commentId: string,
+  userId: string
+): Promise<number> => {
+  const comment = await Comment.findById(commentId);
+  if (!comment) throw new Error("Комментарий не найден");
+
+  const userIdObj = toObjectId(userId);
+  const userIdStr = userIdObj.toString();
+
+  if (!comment.likes.some((id) => id.toString() === userIdStr)) {
+    comment.likes.push(userIdObj);
+    await comment.save();
+
+    if (comment.author.toString() !== userIdStr) {
+      try {
+        console.log("вызываем лайк коммент");
+
+        await createNotification({
+          recipient: toObjectId(comment.author),
+          sender: userIdObj,
+          type: "likeOnComment",
+          // пост здесь не передаем, так как комментарий не хранит postId
+        });
+      } catch (err) {
+        console.error("Failed to create notification (likeComment):", err);
+      }
+    }
+  }
+
+  return comment.likes.length;
+};
+
 export const createComment = async (
   postId: string,
   authorId: string,
   text: string
-): Promise<IComment> => {
-  const authorObjId = new Types.ObjectId(authorId);
+) => {
+  const authorObjId = toObjectId(authorId);
 
   const comment = new Comment({
     author: authorObjId,
@@ -185,12 +305,28 @@ export const createComment = async (
 
   await comment.save();
 
+  const post = await Post.findById(postId);
   await Post.findByIdAndUpdate(postId, { $push: { comments: comment._id } });
+
+  if (post && post.author.toString() !== authorId) {
+    try {
+      if (post && post._id) {
+        await createNotification({
+          recipient: toObjectId(post.author),
+          sender: authorObjId,
+          type: "comment",
+          post: post._id as Types.ObjectId,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to create notification (createComment):", err);
+    }
+  }
 
   const populatedComment = await Comment.findById(comment._id).populate(
     "author",
     "username avatarUrl"
   );
 
-  return populatedComment!;
+  return populatedComment;
 };
