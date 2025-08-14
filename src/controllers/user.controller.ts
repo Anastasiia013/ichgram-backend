@@ -121,10 +121,11 @@ export const changePasswordController = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { identifier } = req.body;
+  const { identifier, email, username } = req.body;
+  const value = identifier || email || username;
 
   try {
-    await usersService.sendPasswordResetLink(identifier);
+    await usersService.sendPasswordResetLink(value);
     res
       .status(200)
       .json({ message: "Reset link sent to email if user exists" });

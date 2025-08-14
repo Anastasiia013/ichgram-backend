@@ -6,7 +6,7 @@ interface CreateNotificationParams {
   recipient: Types.ObjectId;
   sender: Types.ObjectId;
   type: "like" | "comment" | "follow" | "likeOnComment";
-  post?: Types.ObjectId;
+  post?: Types.ObjectId; 
 }
 
 export const createNotification = async ({
@@ -20,24 +20,20 @@ export const createNotification = async ({
     sender,
     type,
     isRead: false,
+    post: post || undefined,
   };
 
-  if (type === "like" || type === "comment") {
-    notificationData.post = post;
-  } else {
-    // Для likeOnComment и follow — поле post отсутствует
-    notificationData.post = undefined;
-  }
-
   const notification = new Notification(notificationData);
-
   const savedNotification = await notification.save();
 
   const populatedNotification = await Notification.findById(
     savedNotification._id
   )
     .populate("sender", "username avatarUrl")
-    .populate("post", "imageUrl")
+    .populate({
+      path: "post",
+      select: "imageUrl",
+    })
     .lean();
 
   io.to(recipient.toString()).emit("newNotification", populatedNotification);
@@ -51,7 +47,10 @@ export const getUserNotifications = async (
   return await Notification.find({ recipient: userId })
     .sort({ createdAt: -1 })
     .populate("sender", "username avatarUrl")
-    .populate("post", "imageUrl")
+    .populate({
+      path: "post",
+      select: "imageUrl",
+    })
     .lean();
 };
 

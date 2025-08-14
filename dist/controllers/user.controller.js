@@ -131,9 +131,10 @@ const updateUserProfileController = (req, res) => __awaiter(void 0, void 0, void
 });
 exports.updateUserProfileController = updateUserProfileController;
 const changePasswordController = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
-    const { identifier } = req.body;
+    const { identifier, email, username } = req.body;
+    const value = identifier || email || username;
     try {
-        yield usersService.sendPasswordResetLink(identifier);
+        yield usersService.sendPasswordResetLink(value);
         res
             .status(200)
             .json({ message: "Reset link sent to email if user exists" });

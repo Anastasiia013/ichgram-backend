@@ -69,9 +69,11 @@ export const verify = async (code: string) => {
   await user.save();
 };
 
-export const sendPasswordResetLink = async (
-  identifier: string
-): Promise<void> => {
+export const sendPasswordResetLink = async (identifier: string): Promise<void> => {
+  if (!identifier) {
+    throw HttpExeption(400, "Email или username обязателен");
+  }
+
   const user = await User.findOne({
     $or: [{ email: identifier }, { username: identifier }],
   });
@@ -96,6 +98,7 @@ export const sendPasswordResetLink = async (
   await sendEmailWitMailgun(emailData);
 };
 
+
 export const resetPasswordByCode = async (
   verificationCode: string,
   newPassword: string
@@ -108,7 +111,7 @@ export const resetPasswordByCode = async (
 
   const hashedPassword = await bcrypt.hash(newPassword, 10);
   user.password = hashedPassword;
-  user.verificationCode = ""; // одноразовый код сбрасываем
+  user.verificationCode = "";
   await user.save();
 };
 

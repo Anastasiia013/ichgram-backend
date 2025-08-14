@@ -62,6 +62,9 @@ const verify = (code) => __awaiter(void 0, void 0, void 0, function* () {
 });
 exports.verify = verify;
 const sendPasswordResetLink = (identifier) => __awaiter(void 0, void 0, void 0, function* () {
+    if (!identifier) {
+        throw (0, HttpExeption_1.default)(400, "Email или username обязателен");
+    }
     const user = yield User_1.default.findOne({
         $or: [{ email: identifier }, { username: identifier }],
     });
@@ -89,7 +92,7 @@ const resetPasswordByCode = (verificationCode, newPassword) => __awaiter(void 0,
     }
     const hashedPassword = yield bcrypt_1.default.hash(newPassword, 10);
     user.password = hashedPassword;
-    user.verificationCode = ""; // одноразовый код сбрасываем
+    user.verificationCode = "";
     yield user.save();
 });
 exports.resetPasswordByCode = resetPasswordByCode;

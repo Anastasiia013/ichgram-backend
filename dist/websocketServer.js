@@ -38,7 +38,6 @@ const startWebsocketServer = () => {
     });
     Notification_1.default.watch().on("change", (change) => __awaiter(void 0, void 0, void 0, function* () {
         if (change.operationType === "insert") {
-            //   const notification = change.fullDocument;
             const notification = yield Notification_1.default.findById(change.fullDocument._id)
                 .populate("sender", "username avatarUrl")
                 .populate("post", "imageUrl")

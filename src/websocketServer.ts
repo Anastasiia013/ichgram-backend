@@ -30,7 +30,6 @@ const startWebsocketServer = () => {
 
   Notification.watch().on("change", async (change) => {
     if (change.operationType === "insert") {
-      //   const notification = change.fullDocument;
       const notification = await Notification.findById(change.fullDocument._id)
         .populate("sender", "username avatarUrl")
         .populate("post", "imageUrl")

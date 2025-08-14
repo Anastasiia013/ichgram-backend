@@ -21,19 +21,16 @@ const createNotification = (_a) => __awaiter(void 0, [_a], void 0, function* ({ 
         sender,
         type,
         isRead: false,
+        post: post || undefined,
     };
-    if (type === "like" || type === "comment") {
-        notificationData.post = post;
-    }
-    else {
-        // Для likeOnComment и follow — поле post отсутствует
-        notificationData.post = undefined;
-    }
     const notification = new Notification_1.default(notificationData);
     const savedNotification = yield notification.save();
     const populatedNotification = yield Notification_1.default.findById(savedNotification._id)
         .populate("sender", "username avatarUrl")
-        .populate("post", "imageUrl")
+        .populate({
+        path: "post",
+        select: "imageUrl",
+    })
         .lean();
     websocketServer_1.io.to(recipient.toString()).emit("newNotification", populatedNotification);
     return savedNotification;
@@ -43,7 +40,10 @@ const getUserNotifications = (userId) => __awaiter(void 0, void 0, void 0, funct
     return yield Notification_1.default.find({ recipient: userId })
         .sort({ createdAt: -1 })
         .populate("sender", "username avatarUrl")
-        .populate("post", "imageUrl")
+        .populate({
+        path: "post",
+        select: "imageUrl",
+    })
         .lean();
 });
 exports.getUserNotifications = getUserNotifications;
