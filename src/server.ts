@@ -45,7 +45,11 @@ const startServer = () => {
 
   // Socket.IO на том же сервере
   const io = new Server(server, {
-    cors: { origin: process.env.FRONTEND_URL || "*" },
+    cors: {
+      origin: process.env.FRONTEND_URL,
+      credentials: true,
+    },
+    transports: ["websocket"],
   });
 
   io.on("connection", (socket) => {
