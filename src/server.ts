@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import path from "path";
+import http from "node:http";
+import { Server } from "socket.io";
 
 import notFoundHandler from "./middlewares/notFoundHandler";
 import errorHandler from "./middlewares/errorHandler";
@@ -11,10 +13,12 @@ import postsRouter from "./routes/posts.router";
 import commentsRouter from "./routes/comments.router";
 import notificationRouter from "./routes/notification.router";
 
+import Notification from "./db/Notification";
+
 const startServer = () => {
   const app = express();
 
-  app.use(cors());
+  app.use(cors({ origin: process.env.FRONTEND_URL || "*" }));
   app.use(express.json());
   app.use(
     "/uploads",
@@ -30,9 +34,46 @@ const startServer = () => {
   app.use(notFoundHandler);
   app.use(errorHandler);
 
-  const port = process.env.PORT || 3000;
+  // HTTP сервер поверх Express
+  const server = http.createServer(app);
 
-  app.listen(port, () => console.log(`Server running on ${port} port`));
+  // Socket.IO на том же сервере
+  const io = new Server(server, {
+    cors: { origin: process.env.FRONTEND_URL || "*" },
+  });
+
+  io.on("connection", (socket) => {
+    console.log("New frontend connected, socket id:", socket.id);
+
+    socket.on("join", (userId: string) => {
+      socket.join(userId);
+      console.log(`Socket ${socket.id} joined room ${userId}`);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("User disconnected, socket id:", socket.id);
+    });
+  });
+
+  // Слушаем изменения в коллекции Notification
+  Notification.watch().on("change", async (change) => {
+    if (change.operationType === "insert") {
+      const notification = await Notification.findById(change.fullDocument._id)
+        .populate("sender", "username avatarUrl")
+        .populate("post", "imageUrl")
+        .lean();
+
+      if (notification) {
+        io.to(notification.recipient.toString()).emit(
+          "newNotification",
+          notification
+        );
+      }
+    }
+  });
+
+  const port = process.env.PORT || 3000;
+  server.listen(port, () => console.log(`Server running on ${port} port`));
 };
 
 export default startServer;
